@@ -8,7 +8,6 @@ const hostname = "localhost";
 app.use(express.json());
 
 
-
 app.get("/test", (req, res) => {
   console.log("hit test");
   st.get('streams/user/StockTwits', {limit:100}, function (err, res) {
