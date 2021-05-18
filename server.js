@@ -27,21 +27,19 @@ app.get("/test", (req, res) => {
             let cryptos = res;
             // Async function to loop through API calls
             async function getTweets() {
-                let response;
-                for (let i = 0; i < cryptos.length; i++) {
-                    let symbol = cryptos[i];
-                    response = await axios
+                for (const symbol of cryptos) {
+                    await axios
                         .get(
                             `https://api.stocktwits.com/api/2/streams/symbol/${symbol}.json`
                         )
                         .then((res) => {
                             let messages = res.data.messages;
                             // Appending keys (symbols) and values (tweets) to the dictionary
-                            for (let j = 0; j < messages.length; j++) {
+                            for (const message of messages) {
                                 if (dict.hasOwnProperty(symbol)) {
-                                    dict[symbol].push(messages[j].body);
+                                    dict[symbol].push(message.body);
                                 } else {
-                                    dict[symbol] = [messages[j].body];
+                                    dict[symbol] = [message.body];
                                 }
                             }
                         });
