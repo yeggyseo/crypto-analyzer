@@ -1,5 +1,7 @@
 const axios = require("axios");
 const express = require("express");
+var Sentiment = require("sentiment");
+var sentiment = new Sentiment();
 const app = express();
 
 const port = 3001;
@@ -53,16 +55,41 @@ app.get("/test", (req, res) => {
             return finalDict();
         })
         .then((res) => {
-            console.log(res);
-            //
-            // IMPLEMENT SENTIMENTAL ANALYSIS
-            // res = { symbol: [message, message, ...] }
-            //
-            //
-            //
-            //
-        });
+            let sentimentDict = {};
 
+            // destructure received JSON by each symbol
+            Object.entries(res).forEach((entry) => {
+                const [symbol, tweets] = entry;
+
+                let totalScore = 0;
+                let totalComparative = 0;
+
+                // run sentiment analysis for each tweet
+                for (const tweet of tweets) {
+                    let sentimentResult = sentiment.analyze(tweet);
+                    totalScore += sentimentResult.score;
+                    totalComparative += sentimentResult.comparative;
+                }
+
+                // add analysis data to JSON to be returned
+                sentimentDict[symbol] = {
+                    numberOfTweets: tweets.length,
+                    totalScore: totalScore,
+                    avg: totalScore / tweets.length,
+                    totalComparative: totalComparative,
+                };
+            });
+            // DEBUG
+            console.log(sentimentDict);
+
+            // symbol: {
+            //     numberOfTweets: int,
+            //     totalScore: int,
+            //     avg: float,
+            //     totalComparative: float,
+            // }
+            return sentimentDict;
+        });
     res.send("API WORKS!");
 });
 
