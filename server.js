@@ -10,8 +10,8 @@ app.use(express.json());
 
 // Global Variable to Store Data
 let sentimentData;
-tweetSentiment(); // initially getting Tweet data
-setInterval(function () { tweetSentiment() }, 1200000);
+tweetSentiment(2); // initially getting Tweet data
+setInterval(function () { tweetSentiment(2) }, 1200000);
 
 app.get("/test", (req, res) => {
     console.log("Route Works")
@@ -19,7 +19,7 @@ app.get("/test", (req, res) => {
     res.send("API WORKS!");
 });
 
-function tweetSentiment () {
+function tweetSentiment (pagination_count) {
      // API Call for trending symbols on StockTwits
      axios
      .get("https://api.stocktwits.com/api/2/trending/symbols.json")
@@ -40,26 +40,32 @@ function tweetSentiment () {
          let cryptos = res;
          // Async function to loop through API calls
          async function getTweets() {
-             for (const symbol of cryptos) {
-                 await axios
-                     .get(`https://api.stocktwits.com/api/2/streams/symbol/${symbol}.json`)
-                     .then((res) => {
-                         let messages = res.data.messages;
-                         // Appending keys (symbols) and values (tweets) to the dictionary
-                         for (const message of messages) {
-                             if (dict.hasOwnProperty(symbol)) {
-                                 dict[symbol].push(message.body);
-                             } else {
-                                 dict[symbol] = [message.body];
-                             }
-                         }
-                     });
-             }
-             return dict;
+            let id = 0;
+            for (const symbol of cryptos) {
+                for (let i = 0; i < pagination_count; i++) {
+                    await axios
+                        .get(`https://api.stocktwits.com/api/2/streams/symbol/${symbol}.json?max=${id}`)
+                        .then((res) => {
+                            let messages = res.data.messages;
+                            id = messages[messages.length - 1].id;
+                            // Appending keys (symbols) and values (tweets) to the dictionary
+                            for (const message of messages) {
+                                if (dict.hasOwnProperty(symbol)) {
+                                    dict[symbol].push(message.body);
+                                } else {
+                                    dict[symbol] = [message.body];
+                                }
+                            }
+                        });
+                }
+            }
+            return dict;
          }
+
          async function finalDict() {
              return await getTweets();
          }
+
          return finalDict();
      })
      .then((res) => {
@@ -95,11 +101,11 @@ function tweetSentiment () {
          //     totalComparative: float,
          // }
 
-        // Updating Global Variableçc
+        // Updating Global Variable
         sentimentData = sentimentDict;
-        return 1;
+        return;
      });
-    return console.log("Fresh sentiment data is stored.")
+    return console.log("New sentiment data is stored.");
 }
 
 app.listen(port, hostname, () => {
