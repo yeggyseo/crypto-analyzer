@@ -27,48 +27,57 @@ app.get("/sentiment", (req, res) => {
 });
 
 function tweetSentiment(pagination_count) {
-    // API Call for trending symbols on StockTwits
     axios
+        // Call Stocktwits API to retrieve trending symbols
         .get("https://api.stocktwits.com/api/2/trending/symbols.json")
         .then((res) => {
-            let body = res.data.symbols;
-            let cryptos = ["BTC.X", "ETH.X", "BCH.X", "DOGE.X"]; // Default Display Cryptos
-            for (const row of body) {
+            let symbols = res.data.symbols;
+
+            // Array to store default crypto symbols and trending crypto symbols
+            let cryptosToAnalyze = ["BTC.X", "ETH.X", "BCH.X", "DOGE.X"];
+
+            for (const row of symbols) {
                 let symbol = row.symbol;
-                // Handpicking crypto symbols (has ".X" at the end of the symbol name)
+
+                // Handpicking tredning crypto symbols (crypto symbols have ".X" at the end of their names)
                 if (symbol.includes(".X")) {
-                    cryptos.push(symbol);
+                    cryptosToAnalyze.push(symbol);
                 }
             }
-            return cryptos;
+            return cryptosToAnalyze;
         })
+        // Use the default and trending crypto symbols to retrieve tweets associated to them
         .then((res) => {
-            let dict = {}; // Stores symbols as keys and tweets as values   { symbol: [message, message, ...] }
+            let tweetsDict = {}; // { symbol: [message, message, ...] }
             let cryptos = res;
-            // Async function to loop through API calls
+
+            // Async function to retrieve associated tweets
             async function getTweets() {
                 let id = 0;
                 for (const symbol of cryptos) {
                     for (let i = 0; i < pagination_count; i++) {
                         await axios
                             .get(
-                                `https://api.stocktwits.com/api/2/streams/symbol/${symbol}.json?max=${id}`
+                                `https://api.stocktwits.com/api/2/streams/symbol/${symbol}.json?max=${maxId}`
                             )
                             .then((res) => {
                                 let messages = res.data.messages;
-                                id = messages[messages.length - 1].id;
+                                let maxId = messages[messages.length - 1].id;
+
                                 // Appending keys (symbols) and values (tweets) to the dictionary
+                                // if there is already a symbol in the dictionary, simply push new data to existing array
+                                // otherwise, make a new entry in the dictionary
                                 for (const message of messages) {
-                                    if (dict.hasOwnProperty(symbol)) {
-                                        dict[symbol].push(message.body);
+                                    if (tweetsDict.hasOwnProperty(symbol)) {
+                                        tweetsDict[symbol].push(message.body);
                                     } else {
-                                        dict[symbol] = [message.body];
+                                        tweetsDict[symbol] = [message.body];
                                     }
                                 }
                             });
                     }
                 }
-                return dict;
+                return tweetsDict;
             }
 
             async function finalDict() {
@@ -110,9 +119,8 @@ function tweetSentiment(pagination_count) {
             //     totalComparative: float,
             // }
 
-            // Updating Global Variable
+            // Update Global Variable
             sentimentData = sentimentDict;
-            return;
         });
     return console.log("New sentiment data is stored.");
 }
