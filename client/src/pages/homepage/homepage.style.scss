@@ -1,0 +1,27 @@
+$base-color: #3b413c;
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: $base-color;
+
+  .header {
+    text-align: center;
+
+    .logo {
+      width: 100px;
+      height: 100px;
+    }
+  }
+
+  .crypto-list {
+    width: 450px;
+  }
+
+  .divider {
+    height: 1px;
+    background-color: $base-color;
+  }
+}
