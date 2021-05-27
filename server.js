@@ -10,14 +10,16 @@ app.use(express.json());
 
 // Global Variable to Store Data
 let sentimentData;
-tweetSentiment(2); // initially getting Tweet data
-setInterval(function () {
-    tweetSentiment(2);
-}, 1200000);
+
+// how many pages to retrieve from Stocktwits
+const paginationCount = 2;
+
+tweetSentiment(paginationCount); // initially getting Tweet data
+setInterval(tweetSentiment, 1200000, paginationCount);
 
 app.get("/debug", (req, res) => {
     console.log("Received a debug request for a new sentiment data");
-    tweetSentiment(2);
+    tweetSentiment(paginationCount);
     console.log(sentimentData);
 });
 
@@ -26,7 +28,7 @@ app.get("/sentiment", (req, res) => {
     res.send(sentimentData);
 });
 
-function tweetSentiment(pagination_count) {
+function tweetSentiment(paginationCount) {
     axios
         // Call Stocktwits API to retrieve trending symbols
         .get("https://api.stocktwits.com/api/2/trending/symbols.json")
@@ -53,16 +55,16 @@ function tweetSentiment(pagination_count) {
 
             // Async function to retrieve associated tweets
             async function getTweets() {
-                let id = 0;
+                let maxId = 0;
                 for (const symbol of cryptos) {
-                    for (let i = 0; i < pagination_count; i++) {
+                    for (let i = 0; i < paginationCount; i++) {
                         await axios
                             .get(
                                 `https://api.stocktwits.com/api/2/streams/symbol/${symbol}.json?max=${maxId}`
                             )
                             .then((res) => {
                                 let messages = res.data.messages;
-                                let maxId = messages[messages.length - 1].id;
+                                maxId = messages[messages.length - 1].id;
 
                                 // Appending keys (symbols) and values (tweets) to the dictionary
                                 // if there is already a symbol in the dictionary, simply push new data to existing array
