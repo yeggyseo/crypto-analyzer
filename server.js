@@ -13,6 +13,12 @@ let sentimentData;
 tweetSentiment(2); // initially getting Tweet data
 setInterval(function () { tweetSentiment(2) }, 1200000);
 
+app.get("/debug", req, res) => {
+    console.log("Requesting a new sentiment data for debug");
+    tweetSentiment(2)
+    console.log(sentimentData);
+}
+
 app.get("/test", (req, res) => {
     console.log("Route Works")
     console.log(sentimentData);
