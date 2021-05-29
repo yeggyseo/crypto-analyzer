@@ -5,8 +5,8 @@ import "./App.css";
 function App() {
     useEffect(() => {
         const testAPI = async () => {
-            let response = await fetch("/sentiment");
-            let data = await response.text();
+            let response = await fetch("/debug");
+            let data = await JSON.stringify(response);
             console.log(data);
         };
 
