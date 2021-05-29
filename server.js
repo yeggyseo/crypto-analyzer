@@ -8,41 +8,41 @@ const port = 3001;
 const hostname = "localhost";
 app.use(express.json());
 
-// Global Variable to Store Data
-let sentimentData;
+let sentimentData; // Global Variable to Store Data
 
 // how many pages to retrieve from Stocktwits; cannot be less than 1
-const paginationCount = 1; // TODO: 2
+const paginationCount = 2;
 
-// Get initial Tweet data and set interval
-// runAnalysis(paginationCount);
+// Get initial Tweet data and set interval to 20 minutes
 setInterval(runAnalysis, 1200000, paginationCount);
 
-app.get("/debug", (req, res) => {
+// debug route used to run analysis to get new data
+app.get("/debug", async (req, res) => {
     console.log("/debug: Received a debug request for a new sentiment data");
-    runAnalysis();
-    console.log(sentimentData);
-});
-
-app.get("/sentiment", (req, res) => {
-    console.log("/sentiment: Received a request for sentiment data");
+    await runAnalysis();
     console.log(sentimentData);
     res.setHeader("Content-Type", "application/json");
     res.json(sentimentData);
 });
 
-function runAnalysis() {
-    console.log("running analysis...");
-    let cryptosToAnalyze = getCryptoSymbols(paginationCount);
-    let cryptoTweets = getCryptoTweets(cryptosToAnalyze);
-    sentimentData = runSentimentAnalysis(cryptoTweets);
+// main route returning collected data to client
+app.get("/sentiment", (req, res) => {
+    console.log("/sentiment: Received a request for sentiment data");
+    res.setHeader("Content-Type", "application/json");
+    res.json(sentimentData);
+});
 
-    console.log(sentimentData);
+// main function
+async function runAnalysis() {
+    console.log("running analysis...");
+    let cryptosToAnalyze = await getCryptoSymbols(paginationCount);
+    let cryptoTweets = await getCryptoTweets(cryptosToAnalyze);
+    sentimentData = runSentimentAnalysis(cryptoTweets);
 }
 
-function getCryptoSymbols() {
-    let cryptosToAnalyze = ["BTC.X"]; // TODO: , "ETH.X", "BCH.X", "DOGE.X"
-    axios
+async function getCryptoSymbols() {
+    let cryptosToAnalyze = ["BTC.X", "ETH.X", "BCH.X", "DOGE.X"];
+    await axios
         // Call Stocktwits API to retrieve trending symbols
         .get("https://api.stocktwits.com/api/2/trending/symbols.json")
         .then((res) => {
@@ -62,43 +62,42 @@ function getCryptoSymbols() {
     return cryptosToAnalyze;
 }
 
+// Use the default and trending crypto symbols to retrieve tweets associated to them
 function getCryptoTweets(cryptos) {
-    // DEBUG: function returns an empty array; more explanation below
+    
+    async function getTweets() {
+        let cryptoTweets = {}; // { symbol: [message, message, ...] }
+        let maxId = 0; // used for pagination
+        let tweets = [];
 
-    // Use the default and trending crypto symbols to retrieve tweets associated to them
-    let cryptoTweets = {}; // { symbol: [message, message, ...] }
-    let maxId = 0;
+        for (const symbol of cryptos) {
+            tweets = [];
+            for (let i = 0; i < paginationCount; i++) {
+                await axios
+                    .get(
+                        `https://api.stocktwits.com/api/2/streams/symbol/${symbol}.json?max=${maxId}`
+                    )
+                    .then((res) => {
+                        let messages = res.data.messages;
+                        maxId = messages[messages.length - 1].id;
 
-    let tweets = [];
-
-    for (const symbol of cryptos) {
-        tweets = [];
-        for (let i = 0; i < paginationCount; i++) {
-            axios
-                .get(
-                    `https://api.stocktwits.com/api/2/streams/symbol/${symbol}.json?max=${maxId}`
-                )
-                .then((res) => {
-                    let messages = res.data.messages;
-                    maxId = messages[messages.length - 1].id;
-
-                    // Appending keys (symbols) and values (tweets) to the dictionary
-                    // if there is already a symbol in the dictionary, simply push new data to existing array
-                    // otherwise, make a new entry in the dictionary
-                    for (const message of messages) {
-                        tweets.push(message.body);
-                    }
-                    // DEBUG: console.log(tweets) here show expected data
-                });
+                        for (const message of messages) {
+                            tweets.push(message.body);
+                        }
+                    });
+            }
+            cryptoTweets[symbol] = tweets;
         }
-        // DEBUG: console.log(tweets) here show empty array
-        // DEBUG: I believe it's async issue but I haven't been able to fix it with several combinations of async functions and await
-        // DEBUG: doesn't help that Promise object isn't the easiest to extract data from
 
-        cryptoTweets[symbol] = tweets;
+        return cryptoTweets;
     }
 
-    return cryptoTweets;
+    // necessary for the nested for-loop async function
+    async function getCryptoTweetsHelper() {
+        return await getTweets();
+    }
+
+    return getCryptoTweetsHelper();
 }
 
 function runSentimentAnalysis(tweetsDict) {
