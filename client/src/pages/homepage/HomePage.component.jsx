@@ -17,8 +17,12 @@ class HomePage extends React.Component {
 
   componentDidMount() {
     const testAPI = async () => {
-      let response = await fetch("/trending");
+      let response = await fetch("/sentiment");
+      console.log(response);
+
       let data = await response.json();
+
+      console.log(data);
 
       let temp = [];
       let rank = 1;

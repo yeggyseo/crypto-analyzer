@@ -1,5 +1,9 @@
 .item {
-  width: 100%;
+  padding: 0 25px;
+
+  &.even {
+    background-color: rgb(235, 235, 235);
+  }
 
   .details {
     display: flex;
