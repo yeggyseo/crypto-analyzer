@@ -10,7 +10,7 @@ $large: 1025px;
   align-items: center;
   justify-content: center;
   color: $base-color;
-  max-width: 700px;
+  max-width: 650px;
   margin: auto;
 
   @media screen and (max-width: $small) {
@@ -38,12 +38,7 @@ $large: 1025px;
     width: 75%;
 
     @media screen and (max-width: $small) {
-      width: 90% !important;
+      width: 100% !important;
     }
-  }
-
-  .divider {
-    height: 1px;
-    background-color: $base-color;
   }
 }

@@ -1,7 +1,6 @@
 import React from "react";
 
 import moment from "moment";
-import { ReactComponent as Logo } from "../../assets/cryptocurrency.svg";
 import CryptoCard from "../../components/crypto-card/crypto-card.component";
 
 import "./homepage.style.scss";
