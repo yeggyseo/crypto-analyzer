@@ -14,128 +14,129 @@ let sentimentData; // Global Variable to Store Data
 const paginationCount = 2;
 
 // Get initial Tweet data and set interval to 20 minutes
+runAnalysis();
 setInterval(runAnalysis, 1200000, paginationCount);
 
 // debug route used to run analysis to get new data
 app.get("/debug", async (req, res) => {
-    console.log("/debug: Received a debug request for a new sentiment data");
-    await runAnalysis();
-    console.log(sentimentData);
-    res.setHeader("Content-Type", "application/json");
-    res.json(sentimentData);
+  console.log("/debug: Received a debug request for a new sentiment data");
+  await runAnalysis();
+  console.log(sentimentData);
+  res.setHeader("Content-Type", "application/json");
+  res.json(sentimentData);
 });
 
 // main route returning collected data to client
 app.get("/sentiment", (req, res) => {
-    console.log("/sentiment: Received a request for sentiment data");
-    res.setHeader("Content-Type", "application/json");
-    res.json(sentimentData);
+  console.log("/sentiment: Received a request for sentiment data");
+  console.log(sentimentData);
+  res.setHeader("Content-Type", "application/json");
+  res.json(sentimentData);
 });
 
 // main function
 async function runAnalysis() {
-    console.log("running analysis...");
-    let cryptosToAnalyze = await getCryptoSymbols(paginationCount);
-    let cryptoTweets = await getCryptoTweets(cryptosToAnalyze);
-    sentimentData = runSentimentAnalysis(cryptoTweets);
+  console.log("running analysis...");
+  let cryptosToAnalyze = await getCryptoSymbols(paginationCount);
+  let cryptoTweets = await getCryptoTweets(cryptosToAnalyze);
+  sentimentData = runSentimentAnalysis(cryptoTweets);
 }
 
 async function getCryptoSymbols() {
-    let cryptosToAnalyze = ["BTC.X", "ETH.X", "BCH.X", "DOGE.X"];
-    await axios
-        // Call Stocktwits API to retrieve trending symbols
-        .get("https://api.stocktwits.com/api/2/trending/symbols.json")
-        .then((res) => {
-            let symbols = res.data.symbols;
+  let cryptosToAnalyze = ["BTC.X", "ETH.X", "BCH.X", "DOGE.X"];
+  await axios
+    // Call Stocktwits API to retrieve trending symbols
+    .get("https://api.stocktwits.com/api/2/trending/symbols.json")
+    .then((res) => {
+      let symbols = res.data.symbols;
 
-            // Array to store default crypto symbols and trending crypto symbols
+      // Array to store default crypto symbols and trending crypto symbols
 
-            for (const row of symbols) {
-                let symbol = row.symbol;
+      for (const row of symbols) {
+        let symbol = row.symbol;
 
-                // Handpicking tredning crypto symbols (crypto symbols have ".X" at the end of their names)
-                if (symbol.includes(".X")) {
-                    cryptosToAnalyze.push(symbol);
-                }
-            }
-        });
-    return cryptosToAnalyze;
+        // Handpicking tredning crypto symbols (crypto symbols have ".X" at the end of their names)
+        if (symbol.includes(".X")) {
+          cryptosToAnalyze.push(symbol);
+        }
+      }
+    });
+  return cryptosToAnalyze;
 }
 
 // Use the default and trending crypto symbols to retrieve tweets associated to them
 function getCryptoTweets(cryptos) {
-    
-    async function getTweets() {
-        let cryptoTweets = {}; // { symbol: [message, message, ...] }
-        let maxId = 0; // used for pagination
-        let tweets = [];
+  async function getTweets() {
+    let cryptoTweets = {}; // { symbol: [message, message, ...] }
+    let maxId = 0; // used for pagination
+    let tweets = [];
 
-        for (const symbol of cryptos) {
-            tweets = [];
-            for (let i = 0; i < paginationCount; i++) {
-                await axios
-                    .get(
-                        `https://api.stocktwits.com/api/2/streams/symbol/${symbol}.json?max=${maxId}`
-                    )
-                    .then((res) => {
-                        let messages = res.data.messages;
-                        maxId = messages[messages.length - 1].id;
+    for (const symbol of cryptos) {
+      tweets = [];
+      for (let i = 0; i < paginationCount; i++) {
+        await axios
+          .get(
+            `https://api.stocktwits.com/api/2/streams/symbol/${symbol}.json?max=${maxId}`
+          )
+          .then((res) => {
+            let messages = res.data.messages;
+            maxId = messages[messages.length - 1].id;
 
-                        for (const message of messages) {
-                            tweets.push(message.body);
-                        }
-                    });
+            for (const message of messages) {
+              tweets.push(message.body);
             }
-            cryptoTweets[symbol] = tweets;
-        }
-
-        return cryptoTweets;
+          });
+      }
+      cryptoTweets[symbol] = tweets;
     }
 
-    // necessary for the nested for-loop async function
-    async function getCryptoTweetsHelper() {
-        return await getTweets();
-    }
+    return cryptoTweets;
+  }
 
-    return getCryptoTweetsHelper();
+  // necessary for the nested for-loop async function
+  async function getCryptoTweetsHelper() {
+    return await getTweets();
+  }
+
+  return getCryptoTweetsHelper();
 }
 
 function runSentimentAnalysis(tweetsDict) {
-    let sentimentDict = {};
+  let sentimentDict = {};
 
-    // destructure received JSON by each symbol
-    Object.entries(tweetsDict).forEach((entry) => {
-        const [symbol, tweets] = entry;
+  // destructure received JSON by each symbol
+  Object.entries(tweetsDict).forEach((entry) => {
+    const [symbol, tweets] = entry;
 
-        let totalScore = 0;
-        let totalComparative = 0;
+    let totalScore = 0;
+    let totalComparative = 0;
 
-        // run sentiment analysis for each tweet
-        for (const tweet of tweets) {
-            let sentimentResult = sentiment.analyze(tweet);
-            totalScore += sentimentResult.score;
-            totalComparative += sentimentResult.comparative;
-        }
+    // run sentiment analysis for each tweet
+    for (const tweet of tweets) {
+      let sentimentResult = sentiment.analyze(tweet);
+      totalScore += sentimentResult.score;
+      totalComparative += sentimentResult.comparative;
+    }
 
-        // add analysis data to JSON to be returned
-        sentimentDict[symbol] = {
-            numberOfTweets: tweets.length,
-            totalScore: totalScore,
-            avg: totalScore / tweets.length,
-            totalComparative: totalComparative,
-        };
-    });
+    // add analysis data to JSON to be returned
+    sentimentDict[symbol] = {
+      numberOfTweets: tweets.length,
+      totalScore: totalScore,
+      avg: totalScore / tweets.length,
+      totalComparative: totalComparative,
+    };
+  });
 
-    // symbol: {
-    //     numberOfTweets: int,
-    //     totalScore: int,
-    //     avg: float,
-    //     totalComparative: float,
-    // }
+  // symbol: {
+  //     numberOfTweets: int,
+  //     totalScore: int,
+  //     avg: float,
+  //     totalComparative: float,
+  // }
 
-    return sentimentDict;
+  return sentimentDict;
 }
 
 app.listen(port, hostname, () => {
-    console.log(`Listening at: http://${hostname}:${port}`);
+  console.log(`Listening at: http://${hostname}:${port}`);
 });
