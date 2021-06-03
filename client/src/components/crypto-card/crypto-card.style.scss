@@ -1,0 +1,23 @@
+.item {
+  padding: 0 25px;
+
+  &.even {
+    background-color: rgb(235, 235, 235);
+  }
+
+  .details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .score-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .score {
+        margin-right: 10px;
+      }
+    }
+  }
+}
