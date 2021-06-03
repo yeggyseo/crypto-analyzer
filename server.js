@@ -14,6 +14,7 @@ let sentimentData; // Global Variable to Store Data
 const paginationCount = 2;
 
 // Get initial Tweet data and set interval to 20 minutes
+runAnalysis()
 setInterval(runAnalysis, 1200000, paginationCount);
 
 // debug route used to run analysis to get new data
