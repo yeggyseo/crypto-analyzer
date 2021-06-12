@@ -9,7 +9,7 @@ const hostname = "localhost";
 app.use(express.json());
 
 let sentimentData; // Global Variable to Store Data
-console.log("Practicing version control line 12");
+
 // how many pages to retrieve from Stocktwits; cannot be less than 1
 const paginationCount = 2;
 
